@@ -98,43 +98,42 @@ public class AddressBook {
     private static final String PERSON_STRING_REPRESENTATION = "%1$s " // name
                                                             + PERSON_DATA_PREFIX_PHONE + "%2$s " // phone
                                                             + PERSON_DATA_PREFIX_EMAIL + "%3$s"; // email
-    private static final String COMMAND_ADD_WORD = "add";
     private static final String COMMAND_ADD_DESC = "Adds a person to the address book.";
     private static final String COMMAND_ADD_PARAMETERS = "NAME "
                                                       + PERSON_DATA_PREFIX_PHONE + "PHONE_NUMBER "
                                                       + PERSON_DATA_PREFIX_EMAIL + "EMAIL";
-    private static final String COMMAND_ADD_EXAMPLE = COMMAND_ADD_WORD + " John Doe p/98765432 e/johnd@gmail.com";
+    private static final String COMMAND_ADD_EXAMPLE = CommandTypes.ADD.toString().toLowerCase() + " John Doe p/98765432 e/johnd@gmail.com";
 
-    private static final String COMMAND_FIND_WORD = "find";
     private static final String COMMAND_FIND_DESC = "Finds all persons whose names contain any of the specified "
                                         + "keywords (case-sensitive) and displays them as a list with index numbers.";
     private static final String COMMAND_FIND_PARAMETERS = "KEYWORD [MORE_KEYWORDS]";
-    private static final String COMMAND_FIND_EXAMPLE = COMMAND_FIND_WORD + " alice bob charlie";
+    private static final String COMMAND_FIND_EXAMPLE = CommandTypes.FIND.toString().toLowerCase() + " alice bob charlie";
 
-    private static final String COMMAND_LIST_WORD = "list";
     private static final String COMMAND_LIST_DESC = "Displays all persons as a list with index numbers.";
-    private static final String COMMAND_LIST_EXAMPLE = COMMAND_LIST_WORD;
+    private static final String COMMAND_LIST_EXAMPLE = CommandTypes.LIST.toString().toLowerCase();
 
-    private static final String COMMAND_DELETE_WORD = "delete";
     private static final String COMMAND_DELETE_DESC = "Deletes a person identified by the index number used in "
                                                     + "the last find/list call.";
     private static final String COMMAND_DELETE_PARAMETER = "INDEX";
-    private static final String COMMAND_DELETE_EXAMPLE = COMMAND_DELETE_WORD + " 1";
+    private static final String COMMAND_DELETE_EXAMPLE = CommandTypes.DELETE.toString().toLowerCase() + " 1";
 
-    private static final String COMMAND_CLEAR_WORD = "clear";
     private static final String COMMAND_CLEAR_DESC = "Clears address book permanently.";
-    private static final String COMMAND_CLEAR_EXAMPLE = COMMAND_CLEAR_WORD;
+    private static final String COMMAND_CLEAR_EXAMPLE = CommandTypes.CLEAR.toString().toLowerCase();
 
-    private static final String COMMAND_HELP_WORD = "help";
     private static final String COMMAND_HELP_DESC = "Shows program usage instructions.";
-    private static final String COMMAND_HELP_EXAMPLE = COMMAND_HELP_WORD;
+    private static final String COMMAND_HELP_EXAMPLE = CommandTypes.HELP.toString().toLowerCase();
 
-    private static final String COMMAND_EXIT_WORD = "exit";
     private static final String COMMAND_EXIT_DESC = "Exits the program.";
-    private static final String COMMAND_EXIT_EXAMPLE = COMMAND_EXIT_WORD;
+    private static final String COMMAND_EXIT_EXAMPLE = CommandTypes.EXIT.toString().toLowerCase();
 
     private static final String DIVIDER = "===================================================";
-
+    
+    private static enum CommandTypes {ADD, FIND, LIST, DELETE, CLEAR, HELP, EXIT};
+    
+    private static final int NUM_ARGS_GIVEN_FILE = 1;
+    private static final int NUM_ARGS_DEFAULT = 0;
+    
+    private static final int NUM_ARGUMENTS_PERSON_DATA = 3;
 
     /* We use a String array to store details of a single person.
      * The constants given below are the indexes for the different data elements of a person
@@ -207,17 +206,26 @@ public class AddressBook {
      */
 
     public static void main(String[] args) {
-        showWelcomeMessage();
-        processProgramArgs(args);
-        loadDataFromStorage();
+        setupProgram(args);
         while (true) {
-            String userCommand = getUserInput();
-            echoUserCommand(userCommand);
-            String feedback = executeCommand(userCommand);
-            showResultToUser(feedback);
+            handleCommands();
         }
     }
 
+    private static void setupProgram(String[] args) {
+        showWelcomeMessage();
+        processProgramArgs(args);
+        loadDataFromStorage();
+    }
+    
+    private static void handleCommands() {
+        String userCommand = getUserInput();
+        echoUserCommand(userCommand);
+        String feedback = executeCommand(userCommand);
+        showResultToUser(feedback);
+    }
+
+    
     /*
      * NOTE : =============================================================
      * The method header comment can be omitted if the method is trivial
@@ -257,17 +265,18 @@ public class AddressBook {
      * @param args full program arguments passed to application main method
      */
     private static void processProgramArgs(String[] args) {
-        if (args.length >= 2) {
+        switch (args.length){
+        case NUM_ARGS_DEFAULT:
+            setupDefaultFileForStorage();
+            break;
+        case NUM_ARGS_GIVEN_FILE:
+            setupGivenFileForStorage(args[0]);
+            break;
+        //invalid number of arguments
+        default:
             showToUser(MESSAGE_INVALID_PROGRAM_ARGS);
             exitProgram();
-        }
-
-        if (args.length == 1) {
-            setupGivenFileForStorage(args[0]);
-        }
-
-        if(args.length == 0) {
-            setupDefaultFileForStorage();
+            break;          
         }
     }
 
@@ -277,7 +286,6 @@ public class AddressBook {
      * Exits if the file name is not acceptable.
      */
     private static void setupGivenFileForStorage(String filePath) {
-
         if (!isValidFilePath(filePath)) {
             showToUser(String.format(MESSAGE_INVALID_FILE, filePath));
             exitProgram();
@@ -368,24 +376,23 @@ public class AddressBook {
         final String[] commandTypeAndParams = splitCommandWordAndArgs(userInputString);
         final String commandType = commandTypeAndParams[0];
         final String commandArgs = commandTypeAndParams[1];
-        switch (commandType) {
-        case COMMAND_ADD_WORD:
-            return executeAddPerson(commandArgs);
-        case COMMAND_FIND_WORD:
+        
+        if (commandType.equalsIgnoreCase(CommandTypes.ADD.toString())){
+            return executeAddPerson(commandArgs);            
+        }else if (commandType.equalsIgnoreCase(CommandTypes.FIND.toString())){
             return executeFindPersons(commandArgs);
-        case COMMAND_LIST_WORD:
+        }else if (commandType.equalsIgnoreCase(CommandTypes.LIST.toString())){
             return executeListAllPersonsInAddressBook();
-        case COMMAND_DELETE_WORD:
+        }else if (commandType.equalsIgnoreCase(CommandTypes.DELETE.toString())){
             return executeDeletePerson(commandArgs);
-        case COMMAND_CLEAR_WORD:
+        }else if (commandType.equalsIgnoreCase(CommandTypes.CLEAR.toString())){
             return executeClearAddressBook();
-        case COMMAND_HELP_WORD:
+        }else if (commandType.equalsIgnoreCase(CommandTypes.HELP.toString())){
             return getUsageInfoForAllCommands();
-        case COMMAND_EXIT_WORD:
-            executeExitProgramRequest();
-        default:
-            return getMessageForInvalidCommandInput(commandType, getUsageInfoForAllCommands());
+        }else if (commandType.equalsIgnoreCase(CommandTypes.EXIT.toString())){
+            executeExitProgramRequest(); 
         }
+        return getMessageForInvalidCommandInput(commandType, getUsageInfoForAllCommands());
     }
 
     /**
@@ -421,7 +428,7 @@ public class AddressBook {
 
         // checks if args are valid (decode result will not be present if the person is invalid)
         if (!decodeResult.isPresent()) {
-            return getMessageForInvalidCommandInput(COMMAND_ADD_WORD, getUsageInfoForAddCommand());
+            return getMessageForInvalidCommandInput(CommandTypes.ADD.toString().toLowerCase(), getUsageInfoForAddCommand());
         }
 
         // add the person as specified
@@ -501,7 +508,7 @@ public class AddressBook {
      */
     private static String executeDeletePerson(String commandArgs) {
         if (!isDeletePersonArgsValid(commandArgs)) {
-            return getMessageForInvalidCommandInput(COMMAND_DELETE_WORD, getUsageInfoForDeleteCommand());
+            return getMessageForInvalidCommandInput(CommandTypes.DELETE.toString().toLowerCase(), getUsageInfoForDeleteCommand());
         }
         final int targetVisibleIndex = extractTargetIndexFromDeletePersonArgs(commandArgs);
         if (!isDisplayIndexValidForLastPersonListingView(targetVisibleIndex)) {
@@ -920,11 +927,9 @@ public class AddressBook {
         if (!isPersonDataExtractableFrom(encoded)) {
             return Optional.empty();
         }
-        final String[] decodedPerson = makePersonFromData(
-                extractNameFromPersonString(encoded),
-                extractPhoneFromPersonString(encoded),
-                extractEmailFromPersonString(encoded)
-        );
+        final String[] decodedPerson = makePersonFromData(extractNameFromPersonString(encoded),
+                                                          extractPhoneFromPersonString(encoded),
+                                                          extractEmailFromPersonString(encoded));
         // check that the constructed person is valid
         return isPersonDataValid(decodedPerson) ? Optional.of(decodedPerson) : Optional.empty();
     }
@@ -957,8 +962,8 @@ public class AddressBook {
     private static boolean isPersonDataExtractableFrom(String personData) {
         final String matchAnyPersonDataPrefix = PERSON_DATA_PREFIX_PHONE + '|' + PERSON_DATA_PREFIX_EMAIL;
         final String[] splitArgs = personData.trim().split(matchAnyPersonDataPrefix);
-        return splitArgs.length == 3 // 3 arguments
-                && !splitArgs[0].isEmpty() // non-empty arguments
+        return splitArgs.length == NUM_ARGUMENTS_PERSON_DATA 
+                && !splitArgs[0].isEmpty() // ensure arguments are not empty
                 && !splitArgs[1].isEmpty()
                 && !splitArgs[2].isEmpty();
     }
@@ -989,12 +994,12 @@ public class AddressBook {
 
         // phone is last arg, target is from prefix to end of string
         if (indexOfPhonePrefix > indexOfEmailPrefix) {
-            return removePrefixSign(encoded.substring(indexOfPhonePrefix, encoded.length()).trim(),
+            return removePrefix(encoded.substring(indexOfPhonePrefix, encoded.length()).trim(),
                     PERSON_DATA_PREFIX_PHONE);
 
         // phone is middle arg, target is from own prefix to next prefix
         } else {
-            return removePrefixSign(
+            return removePrefix(
                     encoded.substring(indexOfPhonePrefix, indexOfEmailPrefix).trim(),
                     PERSON_DATA_PREFIX_PHONE);
         }
@@ -1012,12 +1017,12 @@ public class AddressBook {
 
         // email is last arg, target is from prefix to end of string
         if (indexOfEmailPrefix > indexOfPhonePrefix) {
-            return removePrefixSign(encoded.substring(indexOfEmailPrefix, encoded.length()).trim(),
+            return removePrefix(encoded.substring(indexOfEmailPrefix, encoded.length()).trim(),
                     PERSON_DATA_PREFIX_EMAIL);
 
         // email is middle arg, target is from own prefix to next prefix
         } else {
-            return removePrefixSign(
+            return removePrefix(
                     encoded.substring(indexOfEmailPrefix, indexOfPhonePrefix).trim(),
                     PERSON_DATA_PREFIX_EMAIL);
         }
@@ -1093,46 +1098,46 @@ public class AddressBook {
 
     /** Returns the string for showing 'add' command usage instruction */
     private static String getUsageInfoForAddCommand() {
-        return String.format(MESSAGE_COMMAND_HELP, COMMAND_ADD_WORD, COMMAND_ADD_DESC) + LS
+        return String.format(MESSAGE_COMMAND_HELP, CommandTypes.ADD.toString().toLowerCase(), COMMAND_ADD_DESC) + LS
                 + String.format(MESSAGE_COMMAND_HELP_PARAMETERS, COMMAND_ADD_PARAMETERS) + LS
                 + String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_ADD_EXAMPLE) + LS;
     }
 
     /** Returns the string for showing 'find' command usage instruction */
     private static String getUsageInfoForFindCommand() {
-        return String.format(MESSAGE_COMMAND_HELP, COMMAND_FIND_WORD, COMMAND_FIND_DESC) + LS
+        return String.format(MESSAGE_COMMAND_HELP, CommandTypes.FIND.toString().toLowerCase(), COMMAND_FIND_DESC) + LS
                 + String.format(MESSAGE_COMMAND_HELP_PARAMETERS, COMMAND_FIND_PARAMETERS) + LS
                 + String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_FIND_EXAMPLE) + LS;
     }
 
     /** Returns the string for showing 'delete' command usage instruction */
     private static String getUsageInfoForDeleteCommand() {
-        return String.format(MESSAGE_COMMAND_HELP, COMMAND_DELETE_WORD, COMMAND_DELETE_DESC) + LS
+        return String.format(MESSAGE_COMMAND_HELP, CommandTypes.DELETE.toString().toLowerCase(), COMMAND_DELETE_DESC) + LS
                 + String.format(MESSAGE_COMMAND_HELP_PARAMETERS, COMMAND_DELETE_PARAMETER) + LS
                 + String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_DELETE_EXAMPLE) + LS;
     }
 
     /** Returns string for showing 'clear' command usage instruction */
     private static String getUsageInfoForClearCommand() {
-        return String.format(MESSAGE_COMMAND_HELP, COMMAND_CLEAR_WORD, COMMAND_CLEAR_DESC) + LS
+        return String.format(MESSAGE_COMMAND_HELP, CommandTypes.CLEAR.toString().toLowerCase(), COMMAND_CLEAR_DESC) + LS
                 + String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_CLEAR_EXAMPLE) + LS;
     }
 
     /** Returns the string for showing 'view' command usage instruction */
     private static String getUsageInfoForViewCommand() {
-        return String.format(MESSAGE_COMMAND_HELP, COMMAND_LIST_WORD, COMMAND_LIST_DESC) + LS
+        return String.format(MESSAGE_COMMAND_HELP, CommandTypes.LIST.toString().toLowerCase(), COMMAND_LIST_DESC) + LS
                 + String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_LIST_EXAMPLE) + LS;
     }
 
     /** Returns string for showing 'help' command usage instruction */
     private static String getUsageInfoForHelpCommand() {
-        return String.format(MESSAGE_COMMAND_HELP, COMMAND_HELP_WORD, COMMAND_HELP_DESC)
+        return String.format(MESSAGE_COMMAND_HELP, CommandTypes.HELP.toString().toLowerCase(), COMMAND_HELP_DESC)
                 + String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_HELP_EXAMPLE);
     }
 
     /** Returns the string for showing 'exit' command usage instruction */
     private static String getUsageInfoForExitCommand() {
-        return String.format(MESSAGE_COMMAND_HELP, COMMAND_EXIT_WORD, COMMAND_EXIT_DESC)
+        return String.format(MESSAGE_COMMAND_HELP, CommandTypes.EXIT.toString().toLowerCase(), COMMAND_EXIT_DESC)
                 + String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_EXIT_EXAMPLE);
     }
 
@@ -1142,16 +1147,20 @@ public class AddressBook {
      *         UTILITY METHODS
      * ============================
      */
-
+    
     /**
-     * Removes sign(p/, d/, etc) from parameter string
+    * Removes prefix from the given fullString if prefix occurs at the start of the string.
      *
-     * @param s  Parameter as a string
-     * @param sign  Parameter sign to be removed
-     * @return  string without the sign
-     */
-    private static String removePrefixSign(String s, String sign) {
-        return s.replace(sign, "");
+     * @param fullString  Parameter as a string
+     * @param prefix  Parameter prefix to be removed
+     * @return  string without prefix
+    */
+    private static String removePrefix(String fullString, String prefix) {
+        if(fullString.startsWith(prefix)){
+            return fullString.substring(prefix.length());            
+        }else{
+            return fullString;
+        }        
     }
 
     /**
