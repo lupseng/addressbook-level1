@@ -587,7 +587,7 @@ public class AddressBook {
     }
 
     /**
-     * Displays all persons in the address book to the user; in added order.
+     * Displays all persons in the address book to the user; in alphabetical sorted order.
      *
      * @return feedback display message for the operation result
      */
